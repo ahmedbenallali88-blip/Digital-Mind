@@ -33,4 +33,4 @@ app.post("/api/chat",async(req,res)=>{
   }catch(e){res.status(500).json({error:"API error",detail:String(e?.message||e)})}
 });
 
-app.listen(PORT,()=>console.log("Digital Mind API listening on "+PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("Digital Mind API listening on "+PORT));

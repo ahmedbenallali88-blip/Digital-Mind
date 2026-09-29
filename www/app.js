@@ -3,6 +3,7 @@ let page=localStorage.dmPage||'home';
 let messages=JSON.parse(localStorage.dmMessages||'[]');
 let projects=JSON.parse(localStorage.dmProjects||'[]');
 let tasks=JSON.parse(localStorage.dmTasks||'[]');
+const API_URL=()=>String(localStorage.dmApiUrl||'').replace(/\\/$/,'');
 
 const save=()=>{localStorage.dmMessages=JSON.stringify(messages);localStorage.dmProjects=JSON.stringify(projects);localStorage.dmTasks=JSON.stringify(tasks)};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -44,10 +45,16 @@ document.querySelectorAll('.mini span').forEach(s=>s.onclick=()=>{document.getEl
 function send(){
 let x=document.getElementById('prompt').value.trim(); if(!x){toastMsg('اكتب ما تريد وسأنفذه معك.');return}
 messages.push({r:'u',t:x});
-const result=executeRequest(x);
-messages.push({r:'b',t:result.text});
-if(result.tasks?.length){tasks.push(...result.tasks);tasks=tasks.slice(-50)}
 save();page='mind';render();
+if(API_URL()) return askApi(x); const result=executeRequest(x); messages.push({r:'b',t:result.text}); if(result.tasks?.length){tasks.push(...result.tasks);tasks=tasks.slice(-50)} save(); render();
+}
+async function askApi(x){
+  try{
+    const history=messages.slice(-12).map(m=>({role:m.r==='u'?'user':'assistant',content:m.t}));
+    const r=await fetch(API_URL()+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:x,history})});
+    const data=await r.json(); if(!r.ok) throw new Error(data.error||'API error');
+    messages.push({r:'b',t:data.reply||'لا توجد إجابة'}); save(); render();
+  }catch(e){messages.push({r:'b',t:'تعذر الاتصال بالعقل السحابي. تحقق من رابط API أو الاتصال بالإنترنت.'});save();render()}
 }
 function executeRequest(x){
 const low=x.toLowerCase();
